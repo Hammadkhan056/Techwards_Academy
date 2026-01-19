@@ -27,6 +27,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     stu_id = models.UUIDField()
     # stu_id = models.CharField(max_length=30, unique=True)
     name = models.CharField(max_length=100)
+    father_name = models.CharField(max_length=100, blank=True, null=True)
     email = models.EmailField(unique=True)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES,default='STUDENT')
     is_profile_completed = models.BooleanField(default=False)

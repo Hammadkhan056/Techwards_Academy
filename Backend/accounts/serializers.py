@@ -1,4 +1,5 @@
 
+
 from rest_framework import serializers
 from .models import  User
 import uuid
@@ -47,3 +48,24 @@ class StudentLoginSerializer(serializers.Serializer):
         
         attrs['user'] = user
         return attrs
+    
+    
+class StudentProfileSerializer(serializers.ModelSerializer): 
+    class Meta: 
+        model = User
+        fields = [
+            'father_name',
+            'address',
+            'age',
+            'city',
+            'phone_number'
+        ]
+        
+        
+    def update(self, instance,validated_data): 
+        for attr, value in validated_data.items():
+            setattr(instance,attr,value)
+        
+        instance.is_profile_completed = True
+        instance.save()
+        return instance
