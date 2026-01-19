@@ -19,8 +19,7 @@ from django.urls import path, include
 from django.http import HttpResponse
 
 urlpatterns = [
-    path("", lambda request: HttpResponse("Welcome to Techwards Academy API")),
     path("admin/", admin.site.urls),
-    path('api/', include('Tests.urls')),
-    path("api/users/", include("Users.urls")),
+    path('api/accounts/', include('accounts.urls')),
+    
 ]
