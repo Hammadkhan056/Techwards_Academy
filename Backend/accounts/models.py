@@ -24,7 +24,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     ROLE_CHOICES = (
         ('STUDENT', 'student'),
     )
-    stu_id = models.UUIDField()
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     # stu_id = models.CharField(max_length=30, unique=True)
     name = models.CharField(max_length=100)
     father_name = models.CharField(max_length=100, blank=True, null=True)
@@ -45,5 +45,5 @@ class User(AbstractBaseUser, PermissionsMixin):
     objects = UserManager()
     
     def __str__(self):
-        return f"{self.email} - {self.stu_id}"
+        return f"{self.email} - {self.id}"
     

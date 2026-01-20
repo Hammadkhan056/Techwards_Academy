@@ -1,6 +1,6 @@
 # Create your views here.
 
-
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
@@ -60,7 +60,7 @@ class StudentProfileView(APIView):
         if serializer.is_valid(): 
             serializer.save()
             return Response(
-                {"message":" Profile completed successfully"},
+                {"message":"Profile completed successfully"},
                 status=status.HTTP_200_OK
             )
             
