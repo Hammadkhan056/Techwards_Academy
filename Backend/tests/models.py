@@ -90,7 +90,8 @@ class TestAssignment(models.Model):
         default='assigned'
     )
 
-    score = models.PositiveIntegerField(null=True, blank=True)
+    obtained_marks = models.PositiveIntegerField(null=True, blank=True)
+    is_completed = models.BooleanField(default=False)
     assigned_at = models.DateTimeField(auto_now_add=True)
     started_at = models.DateTimeField(null=True, blank=True)
     submitted_at = models.DateTimeField(null=True, blank=True)

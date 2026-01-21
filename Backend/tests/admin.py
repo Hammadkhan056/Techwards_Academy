@@ -6,5 +6,5 @@ from .models import TestAssignment
 
 @admin.register(TestAssignment)
 class TestAssignmentAdmin(admin.ModelAdmin):
-    list_display = ('student', 'test', 'status', 'score')
+    list_display = ('student', 'test', 'status', 'obtained_marks')
     list_filter = ('status',)
