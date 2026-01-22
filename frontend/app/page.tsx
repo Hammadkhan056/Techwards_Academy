@@ -1,39 +1,141 @@
-'use client';
+// ============================================================================
+// TECHWARDS ACADEMY - LANDING PAGE
+// Public homepage
+// ============================================================================
 
-import React from 'react';
+import Link from 'next/link';
+import { GraduationCap, BookOpen, Video, FileText, ArrowRight } from 'lucide-react';
+import Button from '@/components/ui/Button';
+import Card from '@/components/ui/Card';
 
-export default function Home() {
-  const [data, setData] = React.useState(null);
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-
-  const fetchData = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await fetch('/api');
-      const result = await response.json();
-      setData(result);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'An unknown error occurred');
-    } finally {
-      setLoading(false);
-    }
-  };
-
+export default function HomePage() {
   return (
-    <div>
-      <h1>Techwards Academy</h1>
-      <button onClick={fetchData} disabled={loading}>
-        {loading ? 'Loading...' : 'Fetch Data'}
-      </button>
-      {error && <p style={{ color: 'red' }}>Error: {error}</p>}
-      {data && (
-        <div>
-          <h2>Response from Backend:</h2>
-          <pre>{JSON.stringify(data, null, 2)}</pre>
+    <div className="min-h-screen bg-gray-50">
+      {/* Hero Section */}
+      <section className="gradient-primary text-white py-20 px-4">
+        <div className="max-w-6xl mx-auto text-center">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-white rounded-full shadow-lg mb-6 animate-scale-in">
+            <GraduationCap className="w-10 h-10 text-blue-600" />
+          </div>
+
+          <h1 className="text-5xl md:text-6xl font-bold mb-6 animate-fade-in">
+            Welcome to Techwards Academy
+          </h1>
+
+          <p className="text-xl md:text-2xl text-blue-100 mb-8 max-w-3xl mx-auto animate-slide-up">
+            Unlock your potential with our comprehensive learning platform.
+            Access courses, watch video lectures, and take notes—all in one place.
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-4 justify-center animate-slide-up">
+            <Link href="/register">
+              <Button variant="secondary" size="lg" className="w-full sm:w-auto">
+                Get Started Free
+                <ArrowRight className="w-5 h-5" />
+              </Button>
+            </Link>
+            <Link href="/login">
+              <Button variant="outline" size="lg" className="w-full sm:w-auto bg-white/10 border-white text-white hover:bg-white/20">
+                Login
+              </Button>
+            </Link>
+          </div>
         </div>
-      )}
+      </section>
+
+      {/* Features Section */}
+      <section className="py-20 px-4">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-4xl font-bold text-center text-gray-900 mb-12">
+            Everything You Need to Learn
+          </h2>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            <Card hover className="text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
+                <BookOpen className="w-8 h-8 text-blue-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">
+                Structured Courses
+              </h3>
+              <p className="text-gray-600">
+                Well-organized courses with chapters and progressive learning paths
+              </p>
+            </Card>
+
+            <Card hover className="text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-100 rounded-full mb-4">
+                <Video className="w-8 h-8 text-purple-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">
+                Video Lectures
+              </h3>
+              <p className="text-gray-600">
+                High-quality video content from expert instructors
+              </p>
+            </Card>
+
+            <Card hover className="text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
+                <FileText className="w-8 h-8 text-green-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">
+                Smart Notes
+              </h3>
+              <p className="text-gray-600">
+                Take personal notes and access official course materials
+              </p>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Stats Section */}
+      <section className="bg-white py-16 px-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-8 text-center">
+            <div>
+              <div className="text-5xl font-bold text-blue-600 mb-2">1000+</div>
+              <div className="text-gray-600">Active Students</div>
+            </div>
+            <div>
+              <div className="text-5xl font-bold text-purple-600 mb-2">50+</div>
+              <div className="text-gray-600">Courses Available</div>
+            </div>
+            <div>
+              <div className="text-5xl font-bold text-green-600 mb-2">95%</div>
+              <div className="text-gray-600">Completion Rate</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="gradient-accent text-white py-20 px-4">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-4xl font-bold mb-6">
+            Ready to Start Learning?
+          </h2>
+          <p className="text-xl text-purple-100 mb-8">
+            Join thousands of students already learning on Techwards Academy
+          </p>
+          <Link href="/register">
+            <Button variant="secondary" size="lg">
+              Create Free Account
+              <ArrowRight className="w-5 h-5" />
+            </Button>
+          </Link>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-gray-900 text-white py-8 px-4">
+        <div className="max-w-6xl mx-auto text-center">
+          <p className="text-gray-400">
+            © 2026 Techwards Academy. All rights reserved.
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }
