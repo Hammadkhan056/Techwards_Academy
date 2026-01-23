@@ -27,7 +27,7 @@ class CourseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Course
         fields = (
-            'id', 'title', 'description', 'is_active',
+            'id', 'title', 'description', 'thumbnail', 'is_active',
             'students_count', 'is_enrolled',
             'created_at', 'updated_at',
             'archived_at', 'archived_by', 'archived_by_name', 'archived_by_email'
@@ -79,7 +79,7 @@ class CourseDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Course
         fields = (
-            'id', 'title', 'description', 'is_active',
+            'id', 'title', 'description', 'thumbnail', 'is_active',
             'chapters', 'students', 'students_count', 'is_enrolled',
             'created_at', 'updated_at',
             'archived_at', 'archived_by', 'archived_by_name'
@@ -224,13 +224,15 @@ class StudentNoteSerializer(serializers.ModelSerializer):
     """
     student_name = serializers.CharField(source='student.name', read_only=True)
     chapter_title = serializers.CharField(source='chapter.title', read_only=True)
+    course = serializers.CharField(source='chapter.course.id', read_only=True)
+    course_title = serializers.CharField(source='chapter.course.title', read_only=True)
     video_title = serializers.CharField(source='video.title', read_only=True, allow_null=True)
     is_owner = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = StudentNote
         fields = (
-            'id', 'chapter', 'chapter_title', 'video', 'video_title',
+            'id', 'chapter', 'chapter_title', 'course', 'course_title', 'video', 'video_title',
             'title', 'content', 'student_name', 'is_owner',
             'created_at', 'updated_at'
         )
@@ -258,13 +260,24 @@ class StudentNoteListSerializer(serializers.ModelSerializer):
     """
     Lightweight serializer for listing student notes.
     """
+    chapter_title = serializers.CharField(source='chapter.title', read_only=True)
+    course = serializers.CharField(source='chapter.course.id', read_only=True)
+    course_title = serializers.CharField(source='chapter.course.title', read_only=True)
     video_title = serializers.CharField(source='video.title', read_only=True, allow_null=True)
-    
+    is_owner = serializers.SerializerMethodField()
+
     class Meta:
         model = StudentNote
         fields = (
-            'id', 'title', 'video_title', 'updated_at'
+            'id', 'title', 'chapter', 'chapter_title', 'course', 'course_title', 'video', 'video_title', 'is_owner', 'updated_at'
         )
+
+    def get_is_owner(self, obj):
+        """Check if current user is the note owner"""
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return obj.student_id == request.user.id
+        return False
 
 
 # ============================================================================

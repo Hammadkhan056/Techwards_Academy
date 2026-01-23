@@ -3,7 +3,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from django.utils import timezone
-from django.db.models import Max, Q
+from django.db import transaction
+from django.db.models import Max, Q, Prefetch
 
 from .models import TestAssignment, Question, Test, StudentAnswer, AnswerOption
 from .serializers import (
@@ -14,12 +15,10 @@ from .serializers import (
     StudentAnswerReviewSerializer,
     TestAssignmentSerializer,
     TestAssignmentListSerializer,
-    StudentAnswerDetailSerializer
 )
 
 
 class StudentAssignedTestView(APIView):
-   
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -31,10 +30,19 @@ class StudentAssignedTestView(APIView):
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        # Get latest attempt of each test
+        # Get latest attempt of each test using proper aggregation
+        latest_attempts = TestAssignment.objects.filter(
+            student=user
+        ).values('test').annotate(
+            latest_attempt=Max('attempt_number')
+        ).values_list('test', 'latest_attempt')
+
         assignments = TestAssignment.objects.filter(
             student=user
-        ).order_by('test', '-attempt_number').distinct('test')
+        ).filter(
+            Q(test__in=[item[0] for item in latest_attempts]) &
+            Q(attempt_number__in=[item[1] for item in latest_attempts])
+        ).select_related('test', 'student')
 
         serializer = TestAssignmentListSerializer(assignments, many=True)
         return Response({
@@ -140,9 +148,12 @@ class StudentStartTestView(APIView):
         assignment.started_at = timezone.now()
         assignment.save(update_fields=['status', 'started_at', 'updated_at'])
 
+        # Optimize queries with Prefetch
         questions = Question.objects.filter(
             test=test
-        ).prefetch_related('options')
+        ).prefetch_related(
+            Prefetch('options', queryset=AnswerOption.objects.order_by('id'))
+        ).order_by('order')
 
         test_serializer = TestDetailSerializer(test)
         questions_serializer = QuestionSerializer(questions, many=True)
@@ -157,7 +168,6 @@ class StudentStartTestView(APIView):
 
 
 class StudentSubmitTestView(APIView):
-
     permission_classes = [IsAuthenticated]
 
     def post(self, request, test_id):
@@ -177,92 +187,78 @@ class StudentSubmitTestView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        # Get the assignment (latest active)
-        try:
-            assignment = TestAssignment.objects.get(
-                student=user,
-                test=test,
-                status__in=['started']
-            )
-        except TestAssignment.DoesNotExist:
-            return Response(
-                {"error": "Test not started or already submitted"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        if assignment.due_at and timezone.now() > assignment.due_at:
-            return Response(
-                {"error": "Test submission deadline has passed"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
         answers_data = request.data
-
         if not isinstance(answers_data, list):
             answers_data = [answers_data]
 
-        total_marks = 0
-        correct_answers = 0
-        total_questions = 0
-
+        # Validate all answers first
+        validated_answers = []
         for answer_item in answers_data:
             serializer = StudentAnswerSubmitSerializer(data=answer_item)
-
             if not serializer.is_valid():
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            validated_answers.append(serializer.validated_data)
+
+        # Use atomic transaction for submission
+        with transaction.atomic():
+            # Lock the assignment to prevent concurrent submissions
+            assignment = TestAssignment.objects.select_for_update().get(
+                student=user,
+                test=test,
+                status='started'
+            )
+
+            # Check deadline
+            if assignment.due_at and timezone.now() > assignment.due_at:
                 return Response(
-                    serializer.errors,
+                    {"error": "Test submission deadline has passed"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            question = serializer.validated_data['question']
-            selected_option = serializer.validated_data['option']
+            # Process answers
+            total_marks = 0
+            correct_answers = 0
+            total_questions = 0
 
-           
-            if question.test_id != test_id:
-                return Response(
-                    {"error": "Question does not belong to this test"},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+            for validated_data in validated_answers:
+                question = validated_data['question']
+                selected_option = validated_data['option']
 
-            
-            existing = StudentAnswer.objects.filter(
-                assignment=assignment,
-                question=question
-            ).first()
+                if question.test_id != test_id:
+                    return Response(
+                        {"error": "Question does not belong to this test"},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
 
-            if existing:
-                existing.selected_option = selected_option
-                existing.is_correct = selected_option.is_correct
-                existing.marks_obtained = question.marks if selected_option.is_correct else 0
-                existing.question_marks = question.marks
-                existing.answered_at = timezone.now()
-                existing.save()
-            else:
-                StudentAnswer.objects.create(
+                # Upsert answer
+                answer, created = StudentAnswer.objects.update_or_create(
                     assignment=assignment,
                     question=question,
-                    selected_option=selected_option,
-                    is_correct=selected_option.is_correct,
-                    marks_obtained=question.marks if selected_option.is_correct else 0,
-                    question_marks=question.marks,
-                    answered_at=timezone.now()
+                    defaults={
+                        'selected_option': selected_option,
+                        'is_correct': selected_option.is_correct,
+                        'marks_obtained': question.marks if selected_option.is_correct else 0,
+                        'question_marks': question.marks,
+                        'answered_at': timezone.now(),
+                        'evaluated_at': timezone.now()
+                    }
                 )
 
-            
-            if selected_option.is_correct:
-                total_marks += question.marks
-                correct_answers += 1
-            total_questions += 1
+                if selected_option.is_correct:
+                    total_marks += question.marks
+                    correct_answers += 1
+                total_questions += 1
 
-        assignment.status = 'submitted'
-        assignment.submitted_at = timezone.now()
-        assignment.obtained_marks = total_marks
-        assignment.total_marks = test.total_marks
-        assignment.evaluated_at = timezone.now() 
-        assignment.save(update_fields=[
-            'status', 'submitted_at', 'obtained_marks',
-            'total_marks', 'evaluated_at', 'updated_at'
-        ])
+            # Update assignment
+            assignment.status = 'submitted'
+            assignment.submitted_at = timezone.now()
+            assignment.obtained_marks = total_marks
+            assignment.total_marks = test.total_marks
+            assignment.evaluated_at = timezone.now()
+            assignment.save(update_fields=[
+                'status', 'submitted_at', 'obtained_marks',
+                'total_marks', 'evaluated_at', 'updated_at'
+            ])
 
         return Response({
             "message": "Test submitted successfully",
@@ -278,7 +274,6 @@ class StudentSubmitTestView(APIView):
 
 
 class StudentTestResultView(APIView):
-
     permission_classes = [IsAuthenticated]
 
     def get(self, request, test_id):
@@ -298,6 +293,7 @@ class StudentTestResultView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
+        # Get latest completed attempt
         assignment = TestAssignment.objects.filter(
             student=user,
             test=test,
@@ -306,7 +302,7 @@ class StudentTestResultView(APIView):
 
         if not assignment:
             return Response(
-                {"error": "No submitted attempt found"},
+                {"error": "No completed attempt found"},
                 status=status.HTTP_404_NOT_FOUND
             )
 
@@ -338,7 +334,6 @@ class StudentTestResultView(APIView):
 
 
 class StudentRetakeTestView(APIView):
-   
     permission_classes = [IsAuthenticated]
 
     def post(self, request, test_id):
@@ -358,7 +353,13 @@ class StudentRetakeTestView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-       
+        # Check enrollment
+        if not test.course.students.filter(id=user.id).exists():
+            return Response(
+                {"error": "You are not enrolled in this course"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
         previous_attempt = TestAssignment.objects.filter(
             student=user,
             test=test
@@ -377,19 +378,18 @@ class StudentRetakeTestView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-   
         due_at = request.data.get('due_at')
 
-    
-        new_attempt = TestAssignment.objects.create(
-            student=user,
-            test=test,
-            attempt_number=previous_attempt.attempt_number + 1,
-            test_version=1,
-            total_marks=test.total_marks,
-            status='assigned',
-            due_at=due_at
-        )
+        with transaction.atomic():
+            new_attempt = TestAssignment.objects.create(
+                student=user,
+                test=test,
+                attempt_number=previous_attempt.attempt_number + 1,
+                test_version=1,
+                total_marks=test.total_marks,
+                status='assigned',
+                due_at=due_at
+            )
 
         serializer = TestAssignmentSerializer(new_attempt)
         return Response({
@@ -399,7 +399,6 @@ class StudentRetakeTestView(APIView):
 
 
 class StudentTestAttemptDetailView(APIView):
-   
     permission_classes = [IsAuthenticated]
 
     def get(self, request, test_id, attempt_number):
@@ -425,44 +424,4 @@ class StudentTestAttemptDetailView(APIView):
 
         serializer = TestAssignmentSerializer(assignment)
         return Response(serializer.data)
-                
-class StudentTestResultView(APIView):
-    permission_classes = [IsAuthenticated]
-    
-    def get(self, request,test_id):
-        user = request.user
-        
-        if user.role != 'STUDENT':
-            return Response({"error": "Only Student Allowed."},status=status.HTTP_403_FORBIDDEN)
-        
-        try:
-            assignment = TestAssignment.objects.get(
-                student=user,
-                test_id=test_id
-            )
-            
-        except TestAssignment.DoesNotExist:
-            return Response({"error": "Test not assigned yet."},status=status.HTTP_403_FORBIDDEN)
-        
-        
-        if not assignment.is_completed:
-            return Response(
-                {"error":"Test not completed yet."},status=status.HTTP_400_BAD_REQUEST
-            )
-            
-        student_answers = StudentAnswer.objects.filter(
-            assignment__student=user,
-            assignment__test_id=test_id
-        ).select_related('question','selected_option')
-        
-        
-        serializer = StudentAnswerReviewSerializers(
-            student_answers, many=True
-        )
-        return Response({
-            "test_title": assignment.test.title,
-            "total_marks": assignment.test.total_marks,
-            "obtained_marks": assignment.obtained_marks,
-            "result": serializer.data
-        })
 

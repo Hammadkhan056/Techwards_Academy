@@ -22,6 +22,7 @@ export default function CoursesPage() {
     const [courses, setCourses] = useState<Course[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
+    const [showProfileModal, setShowProfileModal] = useState(false);
 
     useEffect(() => {
         if (!authLoading && !user) {
@@ -106,8 +107,16 @@ export default function CoursesPage() {
                         {filteredCourses.map((course) => (
                             <Card key={course.id} hover className="flex flex-col">
                                 {/* Course Image */}
-                                <div className="w-full h-40 bg-gradient-primary rounded-lg mb-4 flex items-center justify-center">
-                                    <BookOpen className="w-16 h-16 text-white" />
+                                <div className="w-full h-40 bg-gradient-primary rounded-lg mb-4 flex items-center justify-center overflow-hidden">
+                                    {course.thumbnail ? (
+                                        <img
+                                            src={course.thumbnail}
+                                            alt={course.title}
+                                            className="w-full h-full object-cover"
+                                        />
+                                    ) : (
+                                        <BookOpen className="w-16 h-16 text-white" />
+                                    )}
                                 </div>
 
                                 {/* Course Info */}
@@ -138,20 +147,66 @@ export default function CoursesPage() {
 
                                 {/* Action Button */}
                                 <div className="pt-4 border-t border-gray-200">
-                                    <Link href={`/courses/${course.id}`} className="block">
+                                    {course.is_enrolled ? (
+                                        <Link href={`/courses/${course.id}`} className="block">
+                                            <Button variant="outline" className="w-full">
+                                                View Course
+                                            </Button>
+                                        </Link>
+                                    ) : (
                                         <Button
-                                            variant={course.is_enrolled ? 'outline' : 'primary'}
+                                            variant="primary"
                                             className="w-full"
+                                            onClick={() => {
+                                                if (!user?.is_profile_completed) {
+                                                    setShowProfileModal(true);
+                                                } else {
+                                                    router.push(`/courses/${course.id}`);
+                                                }
+                                            }}
                                         >
-                                            {course.is_enrolled ? 'View Course' : 'Enroll Now'}
+                                            Enroll Now
                                         </Button>
-                                    </Link>
+                                    )}
                                 </div>
                             </Card>
                         ))}
                     </div>
                 )}
             </main>
+
+            {/* Profile Completion Modal */}
+            {showProfileModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <Card className="max-w-md w-full mx-4">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                            Complete Your Profile
+                        </h3>
+                        <p className="text-gray-600 mb-6">
+                            You need to complete your profile before enrolling in courses. This helps us provide you with the best learning experience.
+                        </p>
+                        <div className="flex gap-3">
+                            <Button
+                                variant="outline"
+                                onClick={() => setShowProfileModal(false)}
+                                className="flex-1"
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                variant="primary"
+                                onClick={() => {
+                                    setShowProfileModal(false);
+                                    router.push('/dashboard?complete_profile=true'); // Redirect to dashboard with profile completion flag
+                                }}
+                                className="flex-1"
+                            >
+                                Complete Profile
+                            </Button>
+                        </div>
+                    </Card>
+                </div>
+            )}
         </div>
     );
 }

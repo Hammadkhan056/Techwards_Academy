@@ -1,6 +1,8 @@
+from pyexpat import model
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
+from django.core.exceptions import ValidationError
 from courses.models import Course, Chapter
 
 User = settings.AUTH_USER_MODEL
@@ -30,16 +32,18 @@ class Test(models.Model):
     )
     
     title = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
     total_marks = models.PositiveIntegerField(default=0)
+    duration_minutes = models.PositiveIntegerField(null=True, blank=True)
     is_active = models.BooleanField(default=True, db_index=True)
-    
+    is_published = models.BooleanField(default=False, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
         indexes = [
             models.Index(fields=['course', 'is_active']),
-            models.Index(fields=['is_active']),
+            models.Index(fields=['is_published']),
         ]
         verbose_name = 'Test'
         verbose_name_plural = 'Tests'
@@ -49,30 +53,32 @@ class Test(models.Model):
 
 
 class Question(models.Model):
-    
+
     test = models.ForeignKey(
         Test,
-        on_delete=models.PROTECT,
+        on_delete=models.CASCADE,
         related_name='questions'
     )
-    
+
     text = models.TextField()
     marks = models.PositiveIntegerField(default=1)
+    order = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(default=timezone.now)
-    
+
     class Meta:
         verbose_name = 'Question'
         verbose_name_plural = 'Questions'
-    
+
     def __str__(self):
-        return f"{self.test.title} - {self.text[:50]}"
+        return f"{self.test.title} | Q{self.order}"
+
 
 
 class AnswerOption(models.Model):
     
     question = models.ForeignKey(
         Question,
-        on_delete=models.PROTECT, 
+        on_delete=models.CASCADE, 
         related_name='options'
     )
     
@@ -83,70 +89,97 @@ class AnswerOption(models.Model):
     class Meta:
         verbose_name = 'Answer Option'
         verbose_name_plural = 'Answer Options'
+        constraints = [
+            models.UniqueConstraint(
+                fields=["question"],
+                condition=models.Q(is_correct=True),
+                name="one_correct_option_per_question"
+            )
+            
+            
+        ]
     
+    def clean(self):
+        if self.is_correct:
+            exists = AnswerOption.objects.filter(
+                question=self.question,
+                is_correct=True,
+            ).exclude(pk=self.pk).exists()
+            
+            if exists:
+                raise ValidationError(
+                    "Only one correct answer is allowed per question."
+                )
     def __str__(self):
-        return f"{self.question.text[:30]} - {self.text}"
+        return self.text
 
 
 class TestAssignment(models.Model):
-   
-    
+    """
+    Represents a student's attempt at a test.
+    Immutable once submitted.
+    """
+
+    STATUS_ASSIGNED = "assigned"
+    STATUS_STARTED = "started"
+    STATUS_SUBMITTED = "submitted"
+    STATUS_EVALUATED = "evaluated"
+    STATUS_CANCELLED = "cancelled"
+
     STATUS_CHOICES = (
-        ('assigned', 'Assigned'),
-        ('started', 'Started'),
-        ('submitted', 'Submitted'),
-        ('evaluated', 'Evaluated'),
-        ('cancelled', 'Cancelled'), 
+        (STATUS_ASSIGNED, "Assigned"),
+        (STATUS_STARTED, "Started"),
+        (STATUS_SUBMITTED, "Submitted"),
+        (STATUS_EVALUATED, "Evaluated"),
+        (STATUS_CANCELLED, "Cancelled"),
     )
 
     student = models.ForeignKey(
         User,
-        on_delete=models.PROTECT, 
-        related_name='test_assignments'
+        on_delete=models.PROTECT,
+        related_name="test_assignments"
     )
 
     test = models.ForeignKey(
-        'Test',
-        on_delete=models.PROTECT, 
-        related_name='assignments'
+        Test,
+        on_delete=models.PROTECT,
+        related_name="assignments"
     )
 
     attempt_number = models.PositiveSmallIntegerField(default=1)
-    
-    # IMPROVED: Track test version (in case test content changed)
     test_version = models.PositiveIntegerField(default=1)
 
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
-        default='assigned'
+        default=STATUS_ASSIGNED
     )
+
     obtained_marks = models.PositiveIntegerField(null=True, blank=True)
     total_marks = models.PositiveIntegerField(null=True, blank=True)
-    
-    is_completed = models.BooleanField(default=False)
+
     assigned_at = models.DateTimeField(default=timezone.now)
     started_at = models.DateTimeField(null=True, blank=True)
     submitted_at = models.DateTimeField(null=True, blank=True)
     evaluated_at = models.DateTimeField(null=True, blank=True)
     due_at = models.DateTimeField(null=True, blank=True)
-    
-    created_at = models.DateTimeField(default=timezone.now)
+
+    created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ('student', 'test', 'attempt_number') 
+        unique_together = ("student", "test", "attempt_number")
         indexes = [
-            models.Index(fields=['student', 'status']),
-            models.Index(fields=['test', 'status']),
-            models.Index(fields=['assigned_at']),
-            models.Index(fields=['student', 'test']),
+            models.Index(fields=["student", "status"]),
+            models.Index(fields=["test", "status"]),
+            models.Index(fields=["assigned_at"]),
         ]
-        verbose_name = 'Test Assignment'
-        verbose_name_plural = 'Test Assignments'
+        verbose_name = "Test Assignment"
+        verbose_name_plural = "Test Assignments"
 
     def __str__(self):
-        return f"{self.student.name} - {self.test.title} (Attempt {self.attempt_number})"
+        return f"{self.student} | {self.test} | Attempt {self.attempt_number}"
+
 
 
 class StudentAnswer(models.Model):
@@ -177,12 +210,18 @@ class StudentAnswer(models.Model):
     class Meta:
         unique_together = ('assignment', 'question')
         indexes = [
-            models.Index(fields=['assignment', 'is_correct']),
-            models.Index(fields=['question', 'is_correct']),
-            models.Index(fields=['answered_at']),
+            models.Index(fields=['assignment']),
+            models.Index(fields=['question']),
+            
         ]
         verbose_name = 'Student Answer'
         verbose_name_plural = 'Student Answers'
+    
+    def clean(self):
+        if self.selected_option.question_id != self.question_id:
+            raise ValidationError(
+                "Selected option does not belong to this question."
+            )
 
     def __str__(self):
-        return f"{self.assignment.student.name} - Q{self.question.id}"
+        return f"{self.assignment.student} - Q{self.question.id}"

@@ -23,7 +23,7 @@ import type {
 } from '@/types';
 
 // API Base URL
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
@@ -91,12 +91,12 @@ apiClient.interceptors.response.use(
 
 export const authApi = {
   login: async (credentials: LoginCredentials): Promise<AuthResponse> => {
-    const response = await apiClient.post<AuthResponse>('/accounts/login/', credentials);
+    const response = await apiClient.post<AuthResponse>('/accounts/student/login/', credentials);
     return response.data;
   },
 
   register: async (data: RegisterData): Promise<AuthResponse> => {
-    const response = await apiClient.post<AuthResponse>('/accounts/register/', data);
+    const response = await apiClient.post<AuthResponse>('/accounts/student/register/', data);
     return response.data;
   },
 
@@ -110,7 +110,7 @@ export const authApi = {
   },
 
   getCurrentUser: async (): Promise<User> => {
-    const response = await apiClient.get<User>('/accounts/me/');
+    const response = await apiClient.get<User>('/accounts/student/profile/');
     return response.data;
   },
 
@@ -310,6 +310,92 @@ export const studentNotesApi = {
   // Delete student note
   delete: async (noteId: number): Promise<void> => {
     await apiClient.delete(`/courses/student-notes/${noteId}/`);
+  },
+};
+
+// ============================================================================
+// TESTS API
+// ============================================================================
+
+export const testsApi = {
+  // Get assigned tests for student
+  getAssignedTests: async (): Promise<{ total: number; assignments: TestAssignment[] }> => {
+    const response = await apiClient.get<{ total: number; assignments: TestAssignment[] }>(
+      '/tests/student/my-tests/'
+    );
+    return response.data;
+  },
+
+  // Get test history for specific test
+  getTestHistory: async (testId: number): Promise<{
+    test: { id: number; title: string; total_marks: number };
+    total_attempts: number;
+    attempts: TestAssignment[];
+  }> => {
+    const response = await apiClient.get<{
+      test: { id: number; title: string; total_marks: number };
+      total_attempts: number;
+      attempts: TestAssignment[];
+    }>(`/tests/student/test/${testId}/history/`);
+    return response.data;
+  },
+
+  // Start a test attempt
+  startTest: async (testId: number): Promise<TestAttempt> => {
+    const response = await apiClient.get<TestAttempt>(`/tests/student/start/${testId}/`);
+    return response.data;
+  },
+
+  // Submit test answers
+  submitTest: async (testId: number, answers: TestSubmission[]): Promise<{
+    message: string;
+    assignment_id: number;
+    attempt_number: number;
+    obtained_marks: number;
+    total_marks: number;
+    correct_answers: number;
+    total_questions: number;
+    percentage: number;
+    evaluated_at: string;
+  }> => {
+    const response = await apiClient.post<{
+      message: string;
+      assignment_id: number;
+      attempt_number: number;
+      obtained_marks: number;
+      total_marks: number;
+      correct_answers: number;
+      total_questions: number;
+      percentage: number;
+      evaluated_at: string;
+    }>(`/tests/student/submit/${testId}/`, answers);
+    return response.data;
+  },
+
+  // Get test results
+  getTestResults: async (testId: number): Promise<TestResult> => {
+    const response = await apiClient.get<TestResult>(`/tests/student/result/${testId}/`);
+    return response.data;
+  },
+
+  // Retake a test
+  retakeTest: async (testId: number, dueAt?: string): Promise<{
+    message: string;
+    assignment: TestAssignment;
+  }> => {
+    const response = await apiClient.post<{
+      message: string;
+      assignment: TestAssignment;
+    }>(`/tests/student/retake/${testId}/`, { due_at: dueAt });
+    return response.data;
+  },
+
+  // Get specific test attempt details
+  getTestAttempt: async (testId: number, attemptNumber: number): Promise<TestAssignment> => {
+    const response = await apiClient.get<TestAssignment>(
+      `/tests/student/test/${testId}/attempt/${attemptNumber}/`
+    );
+    return response.data;
   },
 };
 

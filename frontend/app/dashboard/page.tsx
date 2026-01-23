@@ -7,13 +7,14 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { coursesApi } from '@/lib/api';
 import type { Course } from '@/types';
 import Navbar from '@/components/layout/Navbar';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import { BookOpen, Video, FileText, TrendingUp, ArrowRight } from 'lucide-react';
+import Input from '@/components/ui/Input';
+import { BookOpen, Video, FileText, TrendingUp, ArrowRight, User, Mail, Phone, MapPin, Calendar, Save } from 'lucide-react';
 import Link from 'next/link';
 
 export default function DashboardPage() {
@@ -21,6 +22,19 @@ export default function DashboardPage() {
     const router = useRouter();
     const [courses, setCourses] = useState<Course[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [showProfileModal, setShowProfileModal] = useState(false);
+    const [profileForm, setProfileForm] = useState({
+        name: user?.name || '',
+        father_name: user?.father_name || '',
+        email: user?.email || '',
+        phone_number: user?.phone_number || '',
+        city: user?.city || '',
+        address: user?.address || '',
+        age: user?.age || ''
+    });
+    const [isSaving, setIsSaving] = useState(false);
+    const [profileError, setProfileError] = useState('');
+    const searchParams = useSearchParams();
 
     useEffect(() => {
         if (!authLoading && !user) {
@@ -35,8 +49,24 @@ export default function DashboardPage() {
 
         if (user) {
             loadCourses();
+            
+            // Check if profile completion is needed
+            if (searchParams.get('complete_profile') === 'true' && !user.is_profile_completed) {
+                setShowProfileModal(true);
+            }
+            
+            // Initialize profile form with user data
+            setProfileForm({
+                name: user.name || '',
+                father_name: user.father_name || '',
+                email: user.email || '',
+                phone_number: user.phone_number || '',
+                city: user.city || '',
+                address: user.address || '',
+                age: user.age ? user.age.toString() : ''
+            });
         }
-    }, [user, authLoading, router]);
+    }, [user, authLoading, router, searchParams]);
 
     const loadCourses = async () => {
         try {

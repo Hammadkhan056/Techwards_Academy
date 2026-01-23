@@ -56,13 +56,13 @@ class TestAssignmentAdmin(admin.ModelAdmin):
 
 @admin.register(StudentAnswer)
 class StudentAnswerAdmin(admin.ModelAdmin):
-    list_display = ('assignment', 'question', 'is_correct', 'marks_obtained', 'question_marks', 'evaluated_at')
+    list_display = ('assignment', 'question', 'is_correct', 'marks_obtained', 'evaluated_at')
     list_filter = ('is_correct', 'assignment__test', 'answered_at', 'evaluated_at')
     search_fields = ('assignment__student__email', 'question__text')
     readonly_fields = ('assignment', 'question', 'selected_option', 'answered_at', 'evaluated_at')
     fieldsets = (
         ('Assignment', {'fields': ('assignment', 'question')}),
         ('Answer', {'fields': ('selected_option',)}),
-        ('Evaluation', {'fields': ('is_correct', 'marks_obtained', 'question_marks')}),
+        ('Evaluation', {'fields': ('is_correct', 'marks_obtained')}),
         ('Timestamps', {'fields': ('answered_at', 'evaluated_at')}),
     )

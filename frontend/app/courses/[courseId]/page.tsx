@@ -20,7 +20,7 @@ export default function CourseDetailPage() {
     const { user, isLoading: authLoading } = useAuth();
     const router = useRouter();
     const params = useParams();
-    const courseId = parseInt(params.id as string);
+    const courseId = parseInt(params.courseId as string);
 
     const [course, setCourse] = useState<CourseDetail | null>(null);
     const [chapters, setChapters] = useState<Chapter[]>([]);
@@ -56,6 +56,12 @@ export default function CourseDetailPage() {
     };
 
     const handleEnroll = async () => {
+        // Check if profile is completed
+        if (!user?.is_profile_completed) {
+            setError('Please complete your profile before enrolling in courses.');
+            return;
+        }
+
         setIsEnrolling(true);
         setError('');
 

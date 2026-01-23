@@ -49,6 +49,7 @@ export interface Course {
     id: number;
     title: string;
     description: string;
+    thumbnail?: string;
     is_active: boolean;
     students_count: number;
     is_enrolled: boolean;
@@ -134,6 +135,8 @@ export interface StudentNote {
     id: number;
     chapter: number;
     chapter_title: string;
+    course: number;
+    course_title: string;
     video?: number;
     video_title?: string;
     title: string;
@@ -214,4 +217,100 @@ export interface NoteFilters {
     chapter_id?: number;
     video_id?: number;
     search?: string;
+}
+
+// Test Types
+export interface Test {
+    id: number;
+    title: string;
+    course: number;
+    course_title: string;
+    chapter?: number;
+    chapter_title?: string;
+    total_marks: number;
+    is_active: boolean;
+    questions: Question[];
+    created_at: string;
+    updated_at: string;
+}
+
+export interface Question {
+    id: number;
+    text: string;
+    marks: number;
+    test: number;
+    options: AnswerOption[];
+    created_at: string;
+}
+
+export interface AnswerOption {
+    id: number;
+    text: string;
+    is_correct: boolean;
+    created_at: string;
+}
+
+export interface TestAssignment {
+    id: number;
+    student: string;
+    student_name: string;
+    student_email: string;
+    test: number;
+    test_title: string;
+    test_total_marks: number;
+    attempt_number: number;
+    test_version: number;
+    status: 'assigned' | 'started' | 'submitted' | 'evaluated' | 'cancelled';
+    obtained_marks?: number;
+    total_marks?: number;
+    assigned_at: string;
+    started_at?: string;
+    submitted_at?: string;
+    evaluated_at?: string;
+    due_at?: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface TestAttempt {
+    assignment_id: number;
+    attempt_number: number;
+    test: Test;
+    questions: Question[];
+    due_at?: string;
+}
+
+export interface TestSubmission {
+    question_id: number;
+    selected_option_id: number;
+}
+
+export interface TestResult {
+    assignment_id: number;
+    attempt_number: number;
+    status: string;
+    test: {
+        id: number;
+        title: string;
+        total_marks: number;
+    };
+    results: {
+        obtained_marks: number;
+        total_marks: number;
+        percentage: number;
+        submitted_at?: string;
+        evaluated_at?: string;
+    };
+    answers: StudentAnswer[];
+}
+
+export interface StudentAnswer {
+    id: number;
+    question: Question;
+    selected_option_text: string;
+    correct_option_text?: string;
+    is_correct: boolean;
+    marks_obtained: number;
+    question_marks: number;
+    evaluated_at?: string;
 }

@@ -229,21 +229,15 @@ class CourseDetailView(APIView):
     
 class ChapterListView(APIView):
     permission_classes = [IsAuthenticated]
-    
+
     def get(self, request, course_id):
         try:
             course = Course.objects.get(id=course_id)
         except Course.DoesNotExist:
             return Response({"error": "Course not found"},status=status.HTTP_404_NOT_FOUND)
-        
-        if request.user.role == 'STUDENT':
-            # NEW: Check if student is in course.students
-            if not course.students.filter(id=request.user.id).exists():
-                return Response(
-                    {"error":"Enroll in course to view chapters"},
-                    status = status.HTTP_403_FORBIDDEN
-                )
-                
+
+        # Allow all authenticated users to see chapter titles and basic info
+        # Only enrolled students can see full chapter content
         chapters = Chapter.objects.filter(course=course)
         serializer = ChapterSerializer(chapters,many=True)
         return Response(serializer.data)
@@ -364,7 +358,7 @@ class StudentNoteViewSet(viewsets.ModelViewSet):
     """
     queryset = StudentNote.objects.all()
     serializer_class = StudentNoteSerializer
-    permission_classes = [IsAuthenticated]  # Temporarily simplified
+    permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
         """Get only current user's notes"""

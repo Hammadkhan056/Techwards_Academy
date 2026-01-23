@@ -10,6 +10,7 @@ User = settings.AUTH_USER_MODEL
 class Course(models.Model): 
     title = models.CharField(max_length=200, unique=True)
     description = models.TextField()
+    thumbnail = models.ImageField(upload_to='course_thumbnails/', blank=True, null=True)
     is_active = models.BooleanField(default=True, db_index=True)
     archived_at = models.DateTimeField(null=True, blank=True)
     archived_by = models.ForeignKey(
@@ -20,7 +21,7 @@ class Course(models.Model):
         related_name='archived_courses'
     )
     
-    # ✅ NEW: Students enrolled in this course (replaces Enrollment model)
+   
     students = models.ManyToManyField(
         User,
         related_name='enrolled_courses',
@@ -78,12 +79,7 @@ class Chapter(models.Model):
 # ============================================================================
 
 class VideoLecture(models.Model):
-    """
-    Video lectures using YouTube embed URLs.
-    - One chapter has many videos
-    - Videos are ordered within a chapter
-    - No local storage - embed only
-    """
+
     chapter = models.ForeignKey(
         Chapter,
         on_delete=models.CASCADE,
@@ -93,13 +89,11 @@ class VideoLecture(models.Model):
     
     title = models.CharField(max_length=200)
     description = models.TextField(null=True, blank=True)
-    
-    # YouTube video ID or full embed URL
+
     youtube_url = models.URLField(
         help_text='YouTube video URL or embed URL (e.g., https://www.youtube.com/watch?v=dQw4w9WgXcQ)'
     )
-    
-    # Duration in seconds (for progress tracking)
+
     duration_seconds = models.PositiveIntegerField(
         null=True,
         blank=True,
@@ -128,7 +122,6 @@ class VideoLecture(models.Model):
         return f"{self.chapter.title} - {self.title}"
     
     def get_youtube_id(self):
-        """Extract YouTube video ID from URL"""
         import re
         # Handle different YouTube URL formats
         patterns = [
@@ -141,25 +134,14 @@ class VideoLecture(models.Model):
         return None
     
     def get_embed_url(self):
-        """Generate embed URL from YouTube URL"""
         video_id = self.get_youtube_id()
         if video_id:
             return f'https://www.youtube.com/embed/{video_id}'
         return self.youtube_url
 
 
-# ============================================================================
-# ADMIN/OFFICIAL NOTES MODELS
-# ============================================================================
-
 class AdminNote(models.Model):
-    """
-    Official notes created by admins for chapters.
-    - One chapter can have multiple notes
-    - Can be text-based or file-based
-    - Visible to all enrolled students
-    """
-    
+ 
     NOTE_TYPE_CHOICES = (
         ('text', 'Text Note'),
         ('file', 'File Upload'),
@@ -182,21 +164,20 @@ class AdminNote(models.Model):
     
     title = models.CharField(max_length=200)
     
-    # Note type
     note_type = models.CharField(
         max_length=10,
         choices=NOTE_TYPE_CHOICES,
         default='text'
     )
     
-    # For text notes
+
     content = models.TextField(
         null=True,
         blank=True,
         help_text='Text content of the note'
     )
     
-    # For file notes
+ 
     file = models.FileField(
         upload_to='admin_notes/%Y/%m/%d/',
         null=True,
@@ -205,7 +186,6 @@ class AdminNote(models.Model):
         help_text='PDF, Word, or other document files'
     )
     
-    # Metadata
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -222,30 +202,19 @@ class AdminNote(models.Model):
         return f"{self.chapter.title} - {self.title}"
     
     def get_file_name(self):
-        """Get file name from file field"""
         if self.file:
             return os.path.basename(self.file.name)
         return None
     
     def get_file_size(self):
-        """Get file size in bytes"""
         if self.file:
             return self.file.size
         return None
 
 
-# ============================================================================
-# STUDENT PERSONAL NOTES MODELS
-# ============================================================================
 
 class StudentNote(models.Model):
-    """
-    Personal notes created by students while learning.
-    - One student can have multiple notes per chapter/video
-    - Notes are private (only student can see)
-    - Editable by the note creator
-    - Can be linked to a specific video or just a chapter
-    """
+
     
     student = models.ForeignKey(
         User,
@@ -272,8 +241,6 @@ class StudentNote(models.Model):
     
     title = models.CharField(max_length=200)
     content = models.TextField()
-    
-    # Metadata
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -286,7 +253,7 @@ class StudentNote(models.Model):
             models.Index(fields=['student', 'video']),
             models.Index(fields=['updated_at']),
         ]
-        unique_together = []  # Allow multiple notes per video
+        unique_together = [] 
     
     def __str__(self):
         return f"{self.student.name} - {self.title}"

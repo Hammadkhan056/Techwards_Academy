@@ -34,8 +34,8 @@ export default function RegisterPage() {
             return;
         }
 
-        if (formData.password.length < 6) {
-            setError('Password must be at least 6 characters');
+        if (formData.password.length < 8) {
+            setError('Password must be at least 8 characters');
             return;
         }
 
@@ -103,7 +103,7 @@ export default function RegisterPage() {
                             value={formData.password}
                             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                             required
-                            helperText="At least 6 characters"
+                            helperText="At least 8 characters"
                         />
 
                         <Input

@@ -3,8 +3,9 @@
 // Reusable input field with error states
 // ============================================================================
 
-import React from 'react';
+import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
+import { Eye, EyeOff } from 'lucide-react';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
     label?: string;
@@ -18,9 +19,12 @@ export default function Input({
     helperText,
     className,
     id,
+    type,
     ...props
 }: InputProps) {
     const inputId = id || label?.toLowerCase().replace(/\s+/g, '-');
+    const [showPassword, setShowPassword] = useState(false);
+    const isPassword = type === 'password';
 
     return (
         <div className="w-full">
@@ -33,19 +37,37 @@ export default function Input({
                 </label>
             )}
 
-            <input
-                id={inputId}
-                className={cn(
-                    'w-full px-4 py-2.5 border rounded-lg transition-all duration-200',
-                    'focus:ring-2 focus:ring-blue-500 focus:border-transparent',
-                    'placeholder:text-gray-400',
-                    error
-                        ? 'border-red-500 focus:ring-red-500'
-                        : 'border-gray-300',
-                    className
+            <div className="relative">
+                <input
+                    id={inputId}
+                    type={isPassword && showPassword ? 'text' : (type || 'text')}
+                    className={cn(
+                        'w-full px-4 py-2.5 border rounded-lg transition-all duration-200',
+                        'focus:ring-2 focus:ring-blue-500 focus:border-transparent',
+                        'placeholder:text-gray-400',
+                        isPassword && 'pr-12',
+                        error
+                            ? 'border-red-500 focus:ring-red-500'
+                            : 'border-gray-300',
+                        className
+                    )}
+                    {...props}
+                />
+
+                {isPassword && (
+                    <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                    >
+                        {showPassword ? (
+                            <EyeOff className="w-5 h-5" />
+                        ) : (
+                            <Eye className="w-5 h-5" />
+                        )}
+                    </button>
                 )}
-                {...props}
-            />
+            </div>
 
             {error && (
                 <p className="mt-1.5 text-sm text-red-600">{error}</p>

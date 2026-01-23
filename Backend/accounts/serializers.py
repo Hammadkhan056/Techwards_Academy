@@ -10,20 +10,14 @@ class StudentRegistrationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'name', 'email', 'password', 'phone_number', 'age']
+        fields = ['id', 'name', 'email', 'password', 'role']
 
-    def validate_phone_number(self, value):
-        if len(value) < 7:
-            raise serializers.ValidationError("Phone number must be at least 7 digits.")
-        return value
-
-    def validate_age(self, value):
-        if value < 1 or value > 120:
-            raise serializers.ValidationError("Age must be between 1 and 120.")
+    def validate_email(self, value):
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("A user with this email already exists.")
         return value
 
     def create(self, validated_data):
-        validated_data['role'] = 'STUDENT'
         password = validated_data.pop('password')
         user = super().create(validated_data)
         user.set_password(password)
