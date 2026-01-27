@@ -20,11 +20,15 @@ export default function Input({
     className,
     id,
     type,
+    value,
     ...props
 }: InputProps) {
     const inputId = id || label?.toLowerCase().replace(/\s+/g, '-');
     const [showPassword, setShowPassword] = useState(false);
     const isPassword = type === 'password';
+
+    // Ensure value is never undefined to prevent controlled/uncontrolled issues
+    const inputValue = value || '';
 
     return (
         <div className="w-full">
@@ -41,6 +45,7 @@ export default function Input({
                 <input
                     id={inputId}
                     type={isPassword && showPassword ? 'text' : (type || 'text')}
+                    value={inputValue}
                     className={cn(
                         'w-full px-4 py-2.5 border rounded-lg transition-all duration-200',
                         'focus:ring-2 focus:ring-blue-500 focus:border-transparent',

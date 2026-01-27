@@ -10,15 +10,22 @@ export interface User {
     father_name?: string;
     email: string;
     role: 'STUDENT' | 'ADMIN';
+    phone?: string;
     phone_number?: string;
     phone_verified: boolean;
     city?: string;
     address?: string;
     age?: number;
+    education?: string;
+    bio?: string;
     is_profile_completed: boolean;
     is_active: boolean;
     created_at: string;
     updated_at: string;
+    // Additional fields for profile stats
+    enrolled_courses_count?: number;
+    tests_taken_count?: number;
+    notes_count?: number;
 }
 
 export interface LoginCredentials {
@@ -223,13 +230,17 @@ export interface NoteFilters {
 export interface Test {
     id: number;
     title: string;
+    description?: string;
     course: number;
     course_title: string;
     chapter?: number;
     chapter_title?: string;
+    duration_minutes?: number;
     total_marks: number;
     is_active: boolean;
-    questions: Question[];
+    is_published: boolean;
+    questions?: Question[];
+    questions_count?: number;
     created_at: string;
     updated_at: string;
 }

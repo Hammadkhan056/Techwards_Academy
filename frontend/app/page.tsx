@@ -12,7 +12,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <section className="gradient-primary text-white py-20 px-4">
+      <section className="bg-gradient-to-r from-blue-600 to-purple-700 text-white py-20 px-4">
         <div className="max-w-6xl mx-auto text-center">
           <div className="inline-flex items-center justify-center w-20 h-20 bg-white rounded-full shadow-lg mb-6 animate-scale-in">
             <GraduationCap className="w-10 h-10 text-blue-600" />
@@ -111,7 +111,7 @@ export default function HomePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="gradient-accent text-white py-20 px-4">
+      <section className="bg-gradient-to-r from-purple-600 to-green-600 text-white py-20 px-4">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-4xl font-bold mb-6">
             Ready to Start Learning?
@@ -129,11 +129,41 @@ export default function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-8 px-4">
-        <div className="max-w-6xl mx-auto text-center">
-          <p className="text-gray-400">
-            © 2026 Techwards Academy. All rights reserved.
-          </p>
+      <footer className="bg-gray-900 text-white py-12 px-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-4 gap-8">
+            <div>
+              <h3 className="text-xl font-bold mb-4">Techwards Academy</h3>
+              <p className="text-gray-400">
+                Empowering learners with comprehensive courses and resources to achieve their goals.
+              </p>
+            </div>
+            <div>
+              <h4 className="text-lg font-semibold mb-4">Quick Links</h4>
+              <ul className="space-y-2">
+                <li><Link href="/courses" className="text-gray-400 hover:text-white">Courses</Link></li>
+                <li><Link href="/register" className="text-gray-400 hover:text-white">Register</Link></li>
+                <li><Link href="/login" className="text-gray-400 hover:text-white">Login</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-lg font-semibold mb-4">Resources</h4>
+              <ul className="space-y-2">
+                <li><Link href="/notes" className="text-gray-400 hover:text-white">Notes</Link></li>
+                <li><Link href="/tests" className="text-gray-400 hover:text-white">Tests</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-lg font-semibold mb-4">Contact Us</h4>
+              <p className="text-gray-400">Email: support@techwards.com</p>
+              <p className="text-gray-400">Phone: +1 (123) 456-7890</p>
+            </div>
+          </div>
+          <div className="border-t border-gray-800 mt-8 pt-8 text-center">
+            <p className="text-gray-400">
+              © 2026 Techwards Academy. All rights reserved.
+            </p>
+          </div>
         </div>
       </footer>
     </div>

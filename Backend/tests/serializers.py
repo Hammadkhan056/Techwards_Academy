@@ -1,13 +1,33 @@
 from rest_framework import serializers
 from django.utils import timezone
-from django.db.models import Max
+from django.db.models import Max, Sum
 from .models import Test, TestAssignment, Question, AnswerOption, StudentAnswer
+
+
+class TestSerializer(serializers.ModelSerializer):
+    """Serializer for admin test management"""
+    course_title = serializers.CharField(source='course.title', read_only=True)
+    chapter_title = serializers.CharField(source='chapter.title', read_only=True, allow_null=True)
+    questions_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Test
+        fields = (
+            'id', 'title', 'description', 'course', 'course_title',
+            'chapter', 'chapter_title', 'duration_minutes', 'total_marks',
+            'is_active', 'is_published', 'questions_count', 
+            'created_at', 'updated_at'
+        )
+        read_only_fields = ('id', 'created_at', 'updated_at')
+    
+    def get_questions_count(self, obj):
+        return obj.questions.count()
 
 
 class AnswerOptionSerializer(serializers.ModelSerializer):
     class Meta:
         model = AnswerOption
-        fields = ('id', 'text', 'is_correct', 'created_at')
+        fields = ('id', 'question', 'text', 'is_correct', 'created_at')
         read_only_fields = ('id', 'created_at')
 
 
@@ -28,7 +48,8 @@ class StudentTestListSerializer(serializers.ModelSerializer):
         model = Test
         fields = (
             'id', 'title', 'course', 'course_title',
-            'chapter', 'chapter_title', 'total_marks', 'is_active', 'created_at'
+            'chapter', 'chapter_title', 'duration_minutes', 
+            'total_marks', 'is_active', 'is_published', 'created_at'
         )
         read_only_fields = ('id', 'created_at')
 
@@ -41,7 +62,7 @@ class TestDetailSerializer(serializers.ModelSerializer):
         model = Test
         fields = (
             'id', 'title', 'course', 'course_title',
-            'chapter', 'total_marks', 'is_active',
+            'chapter', 'duration_minutes', 'total_marks', 'is_active', 'is_published',
             'questions', 'created_at', 'updated_at'
         )
         read_only_fields = ('id', 'created_at', 'updated_at')
@@ -104,7 +125,7 @@ class TestAssignmentListSerializer(serializers.ModelSerializer):
     class Meta:
         model = TestAssignment
         fields = [
-            'id', 'student_name', 'test_title',
+            'id', 'student_name', 'test_title', 'test',
             'attempt_number', 'status', 'obtained_marks', 'total_marks',
             'assigned_at', 'evaluated_at'
         ]

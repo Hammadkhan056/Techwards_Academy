@@ -4,9 +4,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.utils.timezone import now
 
-from .models import Enrollment
-from .serializers import EnrollmentCreateSerializer, MyCourseSerializer
 from courses.models import Course
+from accounts.models import User
 
 
 
@@ -15,47 +14,55 @@ class EnrollCourseView(APIView):
     
     def post(self, request):
         user = request.user
-        serializer = EnrollmentCreateSerializer(data=request.data)
+        course_id = request.data.get('course_id')
         
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        # Refresh user data to ensure we have the latest profile completion status
+        user.refresh_from_db()
         
+        if not course_id:
+            return Response(
+                {"error": "course_id is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Double-check profile completion status
         if not user.is_profile_completed:
             return Response(
-                {"error": "Complete your profile first"},
+                {"error": "Complete your profile first. Required: Name and Age (16+)"},
                 status=status.HTTP_403_FORBIDDEN
             )
             
-        
-        if int(user.age) <= 15:
+        if user.age and int(user.age) < 16:
             return Response(
-                {"error":"You must be older than 15 to enroll"},
-                status = status.HTTP_403_FORBIDDEN
+                {"error":"You must be 16 years or older to enroll"},
+                status=status.HTTP_403_FORBIDDEN
             )
             
-            
-        active_enrollments = Enrollment.objects.filter(
-            student=user, status='active'
-        ).count()
+        # Check current enrollments using ManyToMany
+        current_enrollments = user.enrolled_courses.count()
         
-        if active_enrollments >= 2:
+        if current_enrollments >= 2:
             return Response(
                 {"error":"You can enroll in only 2 courses at a time."},
                 status=status.HTTP_403_FORBIDDEN
             )
             
-        course = Course.objects.get(id=serializer.validated_data['course_id'])
+        try:
+            course = Course.objects.get(id=course_id)
+        except Course.DoesNotExist:
+            return Response(
+                {"error":"Course not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
         
-        if Enrollment.objects.filter(student=user,course=course).exists():
+        if user.enrolled_courses.filter(id=course.id).exists():
             return Response(
                 {"error":"Already enrolled in this course."},
                 status=status.HTTP_400_BAD_REQUEST
             )
             
-        Enrollment.objects.create(
-            student = user, 
-            course = course
-        )
+        # Add user to course students
+        user.enrolled_courses.add(course)
         
         return Response(
             {"message":"Enrollment successful"},
@@ -68,14 +75,19 @@ class MyCourseView(APIView):
     permission_classes = [IsAuthenticated]
     
     def get(self,request):
-        enrollments = Enrollment.objects.filter(
-            student=request.user,
-            status='active'
-        )
+        courses = request.user.enrolled_courses.all()
         
+        course_data = []
+        for course in courses:
+            course_data.append({
+                'id': course.id,
+                'title': course.title,
+                'description': course.description,
+                'thumbnail': course.thumbnail.url if course.thumbnail else None,
+                'created_at': course.created_at
+            })
         
-        serializer = MyCourseSerializer(enrollments, many=True)
-        return Response(serializer.data)
+        return Response(course_data)
     
     
 
@@ -83,23 +95,29 @@ class DropCourseView(APIView):
     permission_classes = [IsAuthenticated]
     
     def post(self, request):
-        enrollment_id = request.data.get('enrollment_id')
-        try:
-            enrollment = Enrollment.objects.get(
-                id=enrollment_id,
-                student=request.user,
-                status='active'
-            )
-
-        except Enrollment.DoesNotExist:
+        course_id = request.data.get('course_id')
+        
+        if not course_id:
             return Response(
-                {"error":"Active enrollment not found."},
+                {"error":"course_id is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        try:
+            course = Course.objects.get(id=course_id)
+        except Course.DoesNotExist:
+            return Response(
+                {"error":"Course not found."},
                 status=status.HTTP_404_NOT_FOUND
             )
             
-        enrollment.status = 'dropped'
-        enrollment.save()
+        if not request.user.enrolled_courses.filter(id=course.id).exists():
+            return Response(
+                {"error":"You are not enrolled in this course."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+            
+        # Remove user from course students
+        request.user.enrolled_courses.remove(course)
         
         return Response({"message":"Course dropped successfully"})
-    
-    

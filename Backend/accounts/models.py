@@ -37,12 +37,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='STUDENT')
     
-    phone_number = models.CharField(
-        max_length=20, 
-        null=True,
-        blank=True,
-        validators=[MinLengthValidator(7)] 
-    )
+    
     phone_verified = models.BooleanField(default=False)
     
     city = models.CharField(max_length=100, blank=True, null=True)
@@ -52,6 +47,16 @@ class User(AbstractBaseUser, PermissionsMixin):
         blank=True,
         validators=[MinValueValidator(1), MaxValueValidator(120)]
     )
+    
+    phone = models.CharField(
+        max_length=20, 
+        null=True,
+        blank=True,
+        validators=[MinLengthValidator(7)]
+    )
+    
+    education = models.CharField(max_length=200, blank=True, null=True)
+    bio = models.TextField(blank=True, null=True)
     
     is_profile_completed = models.BooleanField(default=False)
     
@@ -73,6 +78,26 @@ class User(AbstractBaseUser, PermissionsMixin):
             models.Index(fields=['is_active']),
             models.Index(fields=['role']),
         ]
+    
+    def check_and_set_profile_completion(self):
+        
+        required_fields = ['name', 'age']
+        
+        # Check if all required fields are present and valid
+        is_complete = True
+        for field in required_fields:
+            if not getattr(self, field):
+                is_complete = False
+                break
+        
+        # Check age requirement (must be 16 or older)
+        if is_complete and self.age and self.age >= 16:
+            self.is_profile_completed = True
+        else:
+            self.is_profile_completed = False
+        
+        # Don't save here - let the caller handle saving to avoid recursion
+        return self.is_profile_completed
     
     def __str__(self):
         return f"{self.name} ({self.email})"

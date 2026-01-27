@@ -4,16 +4,23 @@ from .models import Course, Chapter, VideoLecture, AdminNote, StudentNote
 # Register your models here.
 @admin.register(Course)
 class CourseAdmin(admin.ModelAdmin):
-    list_display = ('title', 'is_active', 'created_at', 'archived_at')
+    list_display = ('title', 'thumbnail_preview', 'is_active', 'created_at', 'archived_at')
     list_filter = ('is_active', 'created_at', 'archived_at')
     search_fields = ('title', 'description')
-    readonly_fields = ('created_at', 'updated_at', 'archived_at', 'archived_by')
+    readonly_fields = ('created_at', 'updated_at', 'archived_at', 'archived_by', 'thumbnail_preview')
     fieldsets = (
-        ('Course Info', {'fields': ('title', 'description')}),
+        ('Course Info', {'fields': ('title', 'description', 'thumbnail')}),
         ('Status', {'fields': ('is_active',)}),
         ('Soft Delete', {'fields': ('archived_at', 'archived_by')}),
         ('Timestamps', {'fields': ('created_at', 'updated_at')}),
     )
+    
+    def thumbnail_preview(self, obj):
+        if obj.thumbnail:
+            return f'<img src="{obj.thumbnail.url}" width="50" height="50" style="object-fit: cover;" />'
+        return "No image"
+    thumbnail_preview.short_description = 'Thumbnail'
+    thumbnail_preview.allow_tags = True
 
 @admin.register(Chapter)
 class ChapterAdmin(admin.ModelAdmin):
@@ -30,7 +37,7 @@ class ChapterAdmin(admin.ModelAdmin):
 
 @admin.register(VideoLecture)
 class VideoLectureAdmin(admin.ModelAdmin):
-    list_display = ('title', 'chapter', 'order', 'is_published', 'duration_seconds', 'created_at')
+    list_display = ('title', 'chapter', 'order', 'is_published', 'created_at')
     list_filter = ('is_published', 'chapter__course', 'created_at')
     search_fields = ('title', 'chapter__title', 'chapter__course__title')
     ordering = ('chapter', 'order')
@@ -39,7 +46,7 @@ class VideoLectureAdmin(admin.ModelAdmin):
     fieldsets = (
         ('Video Info', {'fields': ('title', 'description', 'chapter', 'order')}),
         ('YouTube', {'fields': ('youtube_url', 'get_youtube_id', 'get_embed_url')}),
-        ('Metadata', {'fields': ('duration_seconds', 'is_published')}),
+        ('Metadata', {'fields': ('is_published',)}),
         ('Timestamps', {'fields': ('created_at', 'updated_at')}),
     )
     

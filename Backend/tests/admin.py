@@ -12,20 +12,31 @@ class AnswerOptionInline(admin.TabularInline):
     model = AnswerOption
     extra = 1
     fields = ('text', 'is_correct')
+    min_num = 2  # Require at least 2 options
+    
+    def get_formset(self, request, obj=None, **kwargs):
+        formset = super().get_formset(request, obj, **kwargs)
+        formset.validate_min = True
+        return formset
 
 @admin.register(Test)
 class TestAdmin(admin.ModelAdmin):
-    list_display = ('title', 'course', 'chapter', 'total_marks', 'is_active', 'created_at')
-    list_filter = ('is_active', 'course', 'created_at')
+    list_display = ('title', 'course', 'chapter', 'duration_minutes', 'total_marks', 'is_published', 'is_active', 'created_at')
+    list_filter = ('is_active', 'is_published', 'course', 'created_at')
     search_fields = ('title', 'course__title')
-    readonly_fields = ('created_at',)
+    readonly_fields = ('created_at', 'updated_at', 'calculate_total_marks')
     inlines = [QuestionInline]
     fieldsets = (
-        ('Test Info', {'fields': ('course', 'chapter', 'title')}),
-        ('Marks', {'fields': ('total_marks',)}),
-        ('Status', {'fields': ('is_active',)}),
-        ('Timestamps', {'fields': ('created_at',)}),
+        ('Test Info', {'fields': ('course', 'chapter', 'title', 'description')}),
+        ('Test Settings', {'fields': ('duration_minutes', 'total_marks', 'is_published', 'is_active')}),
+        ('Timestamps', {'fields': ('created_at', 'updated_at', 'calculate_total_marks')}),
     )
+    
+    def calculate_total_marks(self, obj):
+        """Display calculated total marks from questions"""
+        calculated = obj.calculate_total_marks()
+        return f"Calculated: {calculated} | Current: {obj.total_marks}"
+    calculate_total_marks.short_description = 'Total Marks Verification'
 
 @admin.register(Question)
 class QuestionAdmin(admin.ModelAdmin):

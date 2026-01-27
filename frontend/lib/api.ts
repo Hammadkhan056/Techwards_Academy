@@ -120,6 +120,11 @@ export const authApi = {
     });
     return response.data;
   },
+
+  updateProfile: async (data: Partial<User>): Promise<{ message: string; profile: User }> => {
+    const response = await apiClient.put<{ message: string; profile: User }>('/accounts/student/profile/', data);
+    return response.data;
+  },
 };
 
 // ============================================================================

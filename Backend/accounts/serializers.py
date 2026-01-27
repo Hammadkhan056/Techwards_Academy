@@ -1,7 +1,19 @@
-
 from rest_framework import serializers
 from .models import User
 from django.contrib.auth import authenticate
+
+# Import models for counting
+try:
+    from courses.models import StudentNote
+    STUDENT_NOTE_MODEL_AVAILABLE = True
+except ImportError:
+    STUDENT_NOTE_MODEL_AVAILABLE = False
+
+try:
+    from courses.models import TestAttempt
+    TEST_ATTEMPT_MODEL_AVAILABLE = True
+except ImportError:
+    TEST_ATTEMPT_MODEL_AVAILABLE = False
 
 
 class StudentRegistrationSerializer(serializers.ModelSerializer):
@@ -10,7 +22,7 @@ class StudentRegistrationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'name', 'email', 'password', 'role']
+        fields = ['id', 'name', 'email', 'password']
 
     def validate_email(self, value):
         if User.objects.filter(email=value).exists():
@@ -19,6 +31,7 @@ class StudentRegistrationSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         password = validated_data.pop('password')
+        validated_data['role'] = 'STUDENT'
         user = super().create(validated_data)
         user.set_password(password)
         user.save()
@@ -53,7 +66,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            'id', 'name', 'email', 'phone_number', 'phone_verified',
+            'id', 'name', 'email', 'phone', 'phone_verified',
             'age', 'city', 'role', 'is_active', 'is_profile_completed',
             'created_at', 'updated_at'
         ]
@@ -62,21 +75,70 @@ class UserDetailSerializer(serializers.ModelSerializer):
     
 class StudentProfileSerializer(serializers.ModelSerializer):
     
+    enrolled_courses_count = serializers.SerializerMethodField()
+    tests_taken_count = serializers.SerializerMethodField()
+    notes_count = serializers.SerializerMethodField()
+    
     class Meta: 
         model = User
         fields = [
+            'id',
+            'name',
             'father_name',
-            'address',
+            'email',
+            'phone',
+            'phone_verified',
             'age',
             'city',
-            'phone_number'
+            'address',
+            'education',
+            'bio',
+            'role',
+            'is_active',
+            'is_profile_completed',
+            'enrolled_courses_count',
+            'tests_taken_count',
+            'notes_count',
+            'created_at',
+            'updated_at'
         ]
         
+    def get_enrolled_courses_count(self, obj):
+        """Get the number of courses the student is enrolled in"""
+        return obj.enrolled_courses.count()
+    
+    def get_tests_taken_count(self, obj):
+        if TEST_ATTEMPT_MODEL_AVAILABLE:
+            return TestAttempt.objects.filter(student=obj).count()
+        else:
+            # If TestAttempt model doesn't exist, return 0
+            return 0
+    
+    def get_notes_count(self, obj):
+        """Get the number of notes the student has created"""
+        if STUDENT_NOTE_MODEL_AVAILABLE:
+            return StudentNote.objects.filter(student=obj).count()
+        else:
+            # If StudentNote model doesn't exist, return 0
+            return 0
         
-    def update(self, instance,validated_data): 
+    def update(self, instance, validated_data): 
         for attr, value in validated_data.items():
-            setattr(instance,attr,value)
+            setattr(instance, attr, value)
         
-        instance.is_profile_completed = True
+        # Check and set profile completion
+        required_fields = ['name', 'age']
+        is_complete = True
+        for field in required_fields:
+            if not getattr(instance, field):
+                is_complete = False
+                break
+        
+        # Check age requirement
+        if is_complete and instance.age and instance.age >= 16:
+            instance.is_profile_completed = True
+        else:
+            instance.is_profile_completed = False
+        
         instance.save()
         return instance

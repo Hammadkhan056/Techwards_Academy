@@ -74,9 +74,7 @@ class Chapter(models.Model):
         return f"{self.course.title} - {self.title}"
     
     
-# ============================================================================
-# VIDEO LECTURE MODELS
-# ============================================================================
+
 
 class VideoLecture(models.Model):
 
@@ -94,16 +92,8 @@ class VideoLecture(models.Model):
         help_text='YouTube video URL or embed URL (e.g., https://www.youtube.com/watch?v=dQw4w9WgXcQ)'
     )
 
-    duration_seconds = models.PositiveIntegerField(
-        null=True,
-        blank=True,
-        help_text='Video duration in seconds'
-    )
-    
-    # Ordering within chapter
+
     order = models.PositiveIntegerField()
-    
-    # Status tracking
     is_published = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -214,15 +204,12 @@ class AdminNote(models.Model):
 
 
 class StudentNote(models.Model):
-
-    
     student = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
         related_name='personal_notes',
         help_text='Student who created this note'
     )
-    
     chapter = models.ForeignKey(
         Chapter,
         on_delete=models.CASCADE,

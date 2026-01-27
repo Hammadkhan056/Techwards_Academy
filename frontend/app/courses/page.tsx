@@ -110,13 +110,17 @@ export default function CoursesPage() {
                                 <div className="w-full h-40 bg-gradient-primary rounded-lg mb-4 flex items-center justify-center overflow-hidden">
                                     {course.thumbnail ? (
                                         <img
-                                            src={course.thumbnail}
+                                            src={course.thumbnail.startsWith('http') ? course.thumbnail : `http://127.0.0.1:8000${course.thumbnail}`}
                                             alt={course.title}
                                             className="w-full h-full object-cover"
+                                            onError={(e) => {
+                                                e.currentTarget.src = '';
+                                                e.currentTarget.style.display = 'none';
+                                                e.currentTarget.nextElementSibling.style.display = 'flex';
+                                            }}
                                         />
-                                    ) : (
-                                        <BookOpen className="w-16 h-16 text-white" />
-                                    )}
+                                    ) : null}
+                                    <BookOpen className="w-16 h-16 text-white" style={{display: course.thumbnail ? 'none' : 'flex'}} />
                                 </div>
 
                                 {/* Course Info */}
@@ -157,11 +161,18 @@ export default function CoursesPage() {
                                         <Button
                                             variant="primary"
                                             className="w-full"
-                                            onClick={() => {
+                                            onClick={async () => {
                                                 if (!user?.is_profile_completed) {
                                                     setShowProfileModal(true);
                                                 } else {
-                                                    router.push(`/courses/${course.id}`);
+                                                    try {
+                                                        await coursesApi.enroll(course.id);
+                                                        // Refresh courses to update enrollment status
+                                                        loadCourses();
+                                                    } catch (error) {
+                                                        console.error('Enrollment failed:', error);
+                                                        alert('Failed to enroll in course. Please try again.');
+                                                    }
                                                 }
                                             }}
                                         >

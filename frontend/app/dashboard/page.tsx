@@ -8,8 +8,9 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { coursesApi } from '@/lib/api';
+import { coursesApi, authApi } from '@/lib/api';
 import type { Course } from '@/types';
+import type { User as UserType } from '@/types';
 import Navbar from '@/components/layout/Navbar';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -23,6 +24,7 @@ export default function DashboardPage() {
     const [courses, setCourses] = useState<Course[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [showProfileModal, setShowProfileModal] = useState(false);
+    const [profileData, setProfileData] = useState<UserType | null>(null);
     const [profileForm, setProfileForm] = useState({
         name: user?.name || '',
         father_name: user?.father_name || '',
@@ -49,6 +51,7 @@ export default function DashboardPage() {
 
         if (user) {
             loadCourses();
+            loadProfileData();
             
             // Check if profile completion is needed
             if (searchParams.get('complete_profile') === 'true' && !user.is_profile_completed) {
@@ -67,6 +70,16 @@ export default function DashboardPage() {
             });
         }
     }, [user, authLoading, router, searchParams]);
+
+    const loadProfileData = async () => {
+        try {
+            const profileData = await authApi.getCurrentUser();
+            console.log('Dashboard profile data:', profileData);
+            setProfileData(profileData);
+        } catch (error) {
+            console.error('Failed to load profile data:', error);
+        }
+    };
 
     const loadCourses = async () => {
         try {
@@ -137,7 +150,7 @@ export default function DashboardPage() {
                                 <FileText className="w-6 h-6 text-green-600" />
                             </div>
                             <div>
-                                <div className="text-2xl font-bold text-gray-900">0</div>
+                                <div className="text-2xl font-bold text-gray-900">{profileData?.notes_count || 0}</div>
                                 <div className="text-sm text-gray-600">Notes Created</div>
                             </div>
                         </div>

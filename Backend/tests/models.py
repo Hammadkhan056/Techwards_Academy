@@ -9,13 +9,7 @@ User = settings.AUTH_USER_MODEL
 
 
 class Test(models.Model):
-    """
-    Represents a test/quiz for a course.
-    
-    DELETION POLICY: Use PROTECT - cannot delete tests with student submissions
-    - If you need to disable a test, set is_active=False
-    - Preserves all student submissions and grades
-    """
+
     
     course = models.ForeignKey(
         Course,
@@ -33,8 +27,8 @@ class Test(models.Model):
     
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True)
+    duration_minutes = models.PositiveIntegerField(null=True, blank=True, help_text="Duration in minutes for timed tests")
     total_marks = models.PositiveIntegerField(default=0)
-    duration_minutes = models.PositiveIntegerField(null=True, blank=True)
     is_active = models.BooleanField(default=True, db_index=True)
     is_published = models.BooleanField(default=False, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -50,6 +44,19 @@ class Test(models.Model):
     
     def __str__(self):
         return self.title
+    
+    def calculate_total_marks(self):
+        """Calculate total marks from all questions"""
+        return self.questions.aggregate(total_marks=models.Sum('marks'))['total_marks'] or 0
+    
+    def save(self, *args, **kwargs):
+        """Update total_marks when saving"""
+        super().save(*args, **kwargs)
+        # Recalculate total marks from questions
+        calculated_marks = self.calculate_total_marks()
+        if calculated_marks != self.total_marks:
+            self.total_marks = calculated_marks
+            super().save(update_fields=['total_marks'])
 
 
 class Question(models.Model):
@@ -100,7 +107,7 @@ class AnswerOption(models.Model):
         ]
     
     def clean(self):
-        if self.is_correct:
+        if self.is_correct and self.question and self.question.pk:
             exists = AnswerOption.objects.filter(
                 question=self.question,
                 is_correct=True,
@@ -115,10 +122,7 @@ class AnswerOption(models.Model):
 
 
 class TestAssignment(models.Model):
-    """
-    Represents a student's attempt at a test.
-    Immutable once submitted.
-    """
+ 
 
     STATUS_ASSIGNED = "assigned"
     STATUS_STARTED = "started"

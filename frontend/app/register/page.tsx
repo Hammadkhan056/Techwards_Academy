@@ -19,7 +19,6 @@ export default function RegisterPage() {
         email: '',
         password: '',
         confirmPassword: '',
-        role: 'STUDENT' as 'STUDENT' | 'ADMIN',
     });
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -46,7 +45,7 @@ export default function RegisterPage() {
                 name: formData.name,
                 email: formData.email,
                 password: formData.password,
-                role: formData.role,
+                role: 'STUDENT', // Always register as student
             });
         } catch (err: any) {
             setError(err.message || 'Registration failed. Please try again.');
@@ -115,43 +114,14 @@ export default function RegisterPage() {
                             required
                         />
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                I am a:
-                            </label>
-                            <div className="flex gap-4">
-                                <label className="flex items-center flex-1 cursor-pointer">
-                                    <input
-                                        type="radio"
-                                        name="role"
-                                        value="STUDENT"
-                                        checked={formData.role === 'STUDENT'}
-                                        onChange={(e) => setFormData({ ...formData, role: 'STUDENT' })}
-                                        className="text-blue-600 focus:ring-blue-500"
-                                    />
-                                    <span className="ml-2 text-gray-700">Student</span>
-                                </label>
-                                <label className="flex items-center flex-1 cursor-pointer">
-                                    <input
-                                        type="radio"
-                                        name="role"
-                                        value="ADMIN"
-                                        checked={formData.role === 'ADMIN'}
-                                        onChange={(e) => setFormData({ ...formData, role: 'ADMIN' })}
-                                        className="text-blue-600 focus:ring-blue-500"
-                                    />
-                                    <span className="ml-2 text-gray-700">Admin</span>
-                                </label>
-                            </div>
-                        </div>
-
                         <Button
                             type="submit"
-                            variant="secondary"
+                            variant="primary"
                             className="w-full"
                             isLoading={isLoading}
+                            disabled={!formData.name || !formData.email || !formData.password || !formData.confirmPassword}
                         >
-                            Create Account
+                            Create Student Account
                         </Button>
                     </form>
 

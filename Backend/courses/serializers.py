@@ -101,9 +101,7 @@ class CourseDetailSerializer(serializers.ModelSerializer):
         return False
         
         
-# ============================================================================
-# VIDEO LECTURE SERIALIZERS
-# ============================================================================
+
 
 class VideoLectureSerializer(serializers.ModelSerializer):
     """
@@ -117,7 +115,7 @@ class VideoLectureSerializer(serializers.ModelSerializer):
         model = VideoLecture
         fields = (
             'id', 'chapter', 'chapter_title', 'title', 'description',
-            'youtube_url', 'embed_url', 'duration_seconds', 'order',
+            'youtube_url', 'embed_url', 'order',
             'is_published', 'created_at', 'updated_at'
         )
         read_only_fields = ('id', 'chapter', 'embed_url', 'created_at', 'updated_at')
@@ -141,16 +139,14 @@ class VideoListSerializer(serializers.ModelSerializer):
     class Meta:
         model = VideoLecture
         fields = (
-            'id', 'title', 'order', 'duration_seconds', 'is_published', 'embed_url'
+            'id', 'title', 'order', 'is_published', 'embed_url'
         )
     
     def get_embed_url(self, obj):
         return obj.get_embed_url()
 
 
-# ============================================================================
-# ADMIN NOTE SERIALIZERS
-# ============================================================================
+
 
 class AdminNoteSerializer(serializers.ModelSerializer):
     """
@@ -213,9 +209,6 @@ class AdminNoteListSerializer(serializers.ModelSerializer):
         )
 
 
-# ============================================================================
-# STUDENT NOTE SERIALIZERS
-# ============================================================================
 
 class StudentNoteSerializer(serializers.ModelSerializer):
     """
@@ -269,7 +262,7 @@ class StudentNoteListSerializer(serializers.ModelSerializer):
     class Meta:
         model = StudentNote
         fields = (
-            'id', 'title', 'chapter', 'chapter_title', 'course', 'course_title', 'video', 'video_title', 'is_owner', 'updated_at'
+            'id', 'title', 'content', 'chapter', 'chapter_title', 'course', 'course_title', 'video', 'video_title', 'is_owner', 'updated_at'
         )
 
     def get_is_owner(self, obj):
@@ -280,9 +273,6 @@ class StudentNoteListSerializer(serializers.ModelSerializer):
         return False
 
 
-# ============================================================================
-# CHAPTER WITH CONTENT SERIALIZERS
-# ============================================================================
 
 class ChapterWithContentSerializer(serializers.ModelSerializer):
     """

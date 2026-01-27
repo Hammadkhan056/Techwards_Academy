@@ -9,6 +9,7 @@ from django.utils.decorators import method_decorator
 
 from .serializers import StudentRegistrationSerializer, StudentLoginSerializer, StudentProfileSerializer, UserDetailSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -66,8 +67,13 @@ class StudentProfileView(APIView):
 
         if serializer.is_valid():
             serializer.save()
+            # Return the updated profile data
+            updated_serializer = StudentProfileSerializer(request.user)
             return Response(
-                {"message":"Profile completed successfully"},
+                {
+                    "message":"Profile updated successfully",
+                    "profile": updated_serializer.data
+                },
                 status=status.HTTP_200_OK
             )
 
