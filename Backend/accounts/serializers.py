@@ -10,10 +10,10 @@ except ImportError:
     STUDENT_NOTE_MODEL_AVAILABLE = False
 
 try:
-    from courses.models import TestAttempt
-    TEST_ATTEMPT_MODEL_AVAILABLE = True
+    from tests.models import TestAssignment
+    TEST_ASSIGNMENT_MODEL_AVAILABLE = True
 except ImportError:
-    TEST_ATTEMPT_MODEL_AVAILABLE = False
+    TEST_ASSIGNMENT_MODEL_AVAILABLE = False
 
 
 class StudentRegistrationSerializer(serializers.ModelSerializer):
@@ -108,10 +108,11 @@ class StudentProfileSerializer(serializers.ModelSerializer):
         return obj.enrolled_courses.count()
     
     def get_tests_taken_count(self, obj):
-        if TEST_ATTEMPT_MODEL_AVAILABLE:
-            return TestAttempt.objects.filter(student=obj).count()
+        """Get the number of tests the student has submitted"""
+        if TEST_ASSIGNMENT_MODEL_AVAILABLE:
+            return TestAssignment.objects.filter(student=obj, status='submitted').count()
         else:
-            # If TestAttempt model doesn't exist, return 0
+            # If TestAssignment model doesn't exist, return 0
             return 0
     
     def get_notes_count(self, obj):

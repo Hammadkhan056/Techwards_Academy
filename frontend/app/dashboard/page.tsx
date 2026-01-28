@@ -189,8 +189,24 @@ export default function DashboardPage() {
                             {courses.map((course) => (
                                 <Card key={course.id} hover>
                                     <div className="mb-4">
-                                        <div className="w-full h-32 bg-gradient-primary rounded-lg mb-4 flex items-center justify-center">
-                                            <BookOpen className="w-12 h-12 text-white" />
+                                        <div className="w-full h-40 bg-gradient-primary rounded-lg mb-4 flex items-center justify-center overflow-hidden">
+                                            {course.thumbnail ? (
+                                                <img
+                                                    src={course.thumbnail.startsWith('http') ? course.thumbnail : `http://127.0.0.1:8000${course.thumbnail}`}
+                                                    alt={course.title}
+                                                    className="w-full h-full object-cover"
+                                                    onError={(e) => {
+                                                        const target = e.currentTarget;
+                                                        const nextElement = target.nextElementSibling as HTMLElement;
+                                                        target.src = '';
+                                                        target.style.display = 'none';
+                                                        if (nextElement) {
+                                                            nextElement.style.display = 'flex';
+                                                        }
+                                                    }}
+                                                />
+                                            ) : null}
+                                            <BookOpen className="w-12 h-12 text-white" style={{display: course.thumbnail ? 'none' : 'flex'}} />
                                         </div>
                                         <h3 className="text-lg font-bold text-gray-900 mb-2">
                                             {course.title}

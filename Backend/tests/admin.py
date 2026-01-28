@@ -53,27 +53,25 @@ class AnswerOptionAdmin(admin.ModelAdmin):
 
 @admin.register(TestAssignment)
 class TestAssignmentAdmin(admin.ModelAdmin):
-    list_display = ('student', 'test', 'attempt_number', 'status', 'obtained_marks', 'total_marks', 'evaluated_at')
-    list_filter = ('status', 'attempt_number', 'assigned_at', 'evaluated_at')
+    list_display = ('student', 'test', 'attempt_number', 'status', 'obtained_marks', 'total_marks', 'submitted_at')
+    list_filter = ('status', 'attempt_number', 'assigned_at', 'submitted_at')
     search_fields = ('student__email', 'student__name', 'test__title')
-    readonly_fields = ('assigned_at', 'started_at', 'submitted_at', 'evaluated_at', 'created_at', 'updated_at')
+    readonly_fields = ('assigned_at', 'started_at', 'submitted_at', 'evaluated_at')
     fieldsets = (
         ('Assignment Info', {'fields': ('student', 'test', 'attempt_number')}),
-        ('Test Version', {'fields': ('test_version',)}),
         ('Results', {'fields': ('obtained_marks', 'total_marks', 'status')}),
-        ('Dates', {'fields': ('due_at',)}),
-        ('Timestamps', {'fields': ('assigned_at', 'started_at', 'submitted_at', 'evaluated_at', 'created_at', 'updated_at')}),
+        ('Timestamps', {'fields': ('assigned_at', 'started_at', 'submitted_at', 'evaluated_at')}),
     )
 
 @admin.register(StudentAnswer)
 class StudentAnswerAdmin(admin.ModelAdmin):
-    list_display = ('assignment', 'question', 'is_correct', 'marks_obtained', 'evaluated_at')
-    list_filter = ('is_correct', 'assignment__test', 'answered_at', 'evaluated_at')
+    list_display = ('assignment', 'question', 'is_correct', 'marks_obtained', 'created_at')
+    list_filter = ('is_correct', 'assignment__test', 'created_at')
     search_fields = ('assignment__student__email', 'question__text')
-    readonly_fields = ('assignment', 'question', 'selected_option', 'answered_at', 'evaluated_at')
+    readonly_fields = ('assignment', 'question', 'selected_option', 'created_at')
     fieldsets = (
         ('Assignment', {'fields': ('assignment', 'question')}),
         ('Answer', {'fields': ('selected_option',)}),
         ('Evaluation', {'fields': ('is_correct', 'marks_obtained')}),
-        ('Timestamps', {'fields': ('answered_at', 'evaluated_at')}),
+        ('Timestamps', {'fields': ('created_at',)}),
     )
